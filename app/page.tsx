@@ -1,19 +1,20 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import Snowfall from "react-snowfall";
-import { motion } from "framer-motion";
-import { Music, SkipForward, SkipBack } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Music, SkipForward, SkipBack, Play, X, ChevronLeft, ChevronRight } from "lucide-react";
 
 // --- CONFIGURATION ---
 // 1. Go to your Spotify Playlist
 // 2. Click "Share" -> "Copy Link to Playlist"
 // 3. The link looks like: https://open.spotify.com/playlist/37i9dQZF1DX0Yxoavh5qJV?si=...
 // 4. Copy JUST the ID part (e.g., 37i9dQZF1DX0Yxoavh5qJV) and paste it below:
-const SPOTIFY_PLAYLIST_ID = "37i9dQZF1DX0Yxoavh5qJV"; // Default: Christmas Hits
+const SPOTIFY_PLAYLIST_ID = "1yoloAg5DbRkWQQ1s3KiPw";
 
 export default function TyrellWinterFestival() {
   const [mounted, setMounted] = useState(false);
+  const [showSlideshow, setShowSlideshow] = useState(false);
 
   // Prevent hydration mismatch for snowfall/animations
   useEffect(() => {
@@ -57,7 +58,27 @@ export default function TyrellWinterFestival() {
         <FloatingDecorations />
       </main>
 
-      {/* 4. Fixed Bottom Player */}
+      {/* 4. Slideshow Button */}
+      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-40">
+        <motion.button
+          onClick={() => setShowSlideshow(true)}
+          className="flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white font-semibold hover:bg-white/20 transition-all shadow-lg"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Play className="w-5 h-5" />
+          Slideshow
+        </motion.button>
+      </div>
+
+      {/* 5. Fullscreen Slideshow */}
+      <AnimatePresence>
+        {showSlideshow && (
+          <Slideshow onClose={() => setShowSlideshow(false)} />
+        )}
+      </AnimatePresence>
+
+      {/* 6. Fixed Bottom Player */}
       <footer className="fixed bottom-0 left-0 w-full z-50 bg-black/60 backdrop-blur-xl border-t border-white/10 p-2 shadow-2xl">
         <div className="max-w-screen-xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Operator Visuals (Left) */}
@@ -88,6 +109,179 @@ export default function TyrellWinterFestival() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// --- Fullscreen Slideshow Component ---
+function Slideshow({ onClose }: { onClose: () => void }) {
+  const [images, setImages] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch images from the slideshow folder
+  useEffect(() => {
+    fetch("/api/slideshow")
+      .then((res) => res.json())
+      .then((data) => {
+        setImages(data.images || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const nextSlide = useCallback(() => {
+    if (images.length === 0) return;
+    setCurrentIndex((prev) => (prev + 1) % images.length);
+  }, [images.length]);
+
+  const prevSlide = useCallback(() => {
+    if (images.length === 0) return;
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  }, [images.length]);
+
+  // Auto-advance slides every 5 seconds
+  useEffect(() => {
+    if (isPaused || images.length === 0) return;
+    const interval = setInterval(nextSlide, 5000);
+    return () => clearInterval(interval);
+  }, [isPaused, nextSlide, images.length]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") prevSlide();
+      if (e.key === "ArrowRight") nextSlide();
+      if (e.key === " ") {
+        e.preventDefault();
+        setIsPaused((p) => !p);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [onClose, nextSlide, prevSlide]);
+
+  // Show loading or empty state
+  if (loading) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+      >
+        <div className="text-white text-xl">Loading...</div>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-[110] p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+        >
+          <X className="w-8 h-8 text-white" />
+        </button>
+      </motion.div>
+    );
+  }
+
+  if (images.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+      >
+        <div className="text-center text-white">
+          <p className="text-2xl mb-4">No images found</p>
+          <p className="text-gray-400">
+            Add images to <code className="bg-white/10 px-2 py-1 rounded">public/slideshow/</code>
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-[110] p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+        >
+          <X className="w-8 h-8 text-white" />
+        </button>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[100] bg-black flex items-center justify-center"
+      onClick={() => setIsPaused((p) => !p)}
+    >
+      {/* Close Button */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className="absolute top-4 right-4 z-[110] p-2 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+      >
+        <X className="w-8 h-8 text-white" />
+      </button>
+
+      {/* Navigation Arrows */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          prevSlide();
+        }}
+        className="absolute left-4 z-[110] p-3 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+      >
+        <ChevronLeft className="w-8 h-8 text-white" />
+      </button>
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          nextSlide();
+        }}
+        className="absolute right-4 z-[110] p-3 bg-black/50 rounded-full hover:bg-black/70 transition-colors"
+      >
+        <ChevronRight className="w-8 h-8 text-white" />
+      </button>
+
+      {/* Image */}
+      <AnimatePresence mode="wait">
+        <motion.img
+          key={currentIndex}
+          src={images[currentIndex]}
+          alt={`Slide ${currentIndex + 1}`}
+          initial={{ opacity: 0, scale: 1.1 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.95 }}
+          transition={{ duration: 0.5 }}
+          className="max-h-full max-w-full object-contain"
+        />
+      </AnimatePresence>
+
+      {/* Slide Indicators */}
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-[110]">
+        {images.map((_, idx) => (
+          <button
+            key={idx}
+            onClick={(e) => {
+              e.stopPropagation();
+              setCurrentIndex(idx);
+            }}
+            className={`w-2 h-2 rounded-full transition-all ${
+              idx === currentIndex ? "bg-white w-6" : "bg-white/50"
+            }`}
+          />
+        ))}
+      </div>
+
+      {/* Pause Indicator */}
+      {isPaused && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 text-white/70 text-sm">
+          Paused - Click to resume
+        </div>
+      )}
+    </motion.div>
   );
 }
 
