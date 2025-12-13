@@ -39,17 +39,41 @@ export default function TyrellWinterFestival() {
 
       {/* 3. Main Content */}
       <main className="relative z-20 flex flex-col items-center justify-center h-[85vh] w-full text-center p-4">
+        {/* Christmas Lights Decoration */}
+        <ChristmasLights />
+
         {/* Animated Title */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 1.2, ease: "easeOut" }}
-          className="z-30"
+          className="z-30 relative"
         >
-          <h1 className="text-7xl md:text-9xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-blue-100 to-blue-200 drop-shadow-[0_0_25px_rgba(255,255,255,0.4)] font-serif mb-4">
+          <h1
+            className="text-7xl md:text-9xl font-black tracking-tighter text-white font-serif mb-4"
+            style={{
+              textShadow: `
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 255, 255, 0.6),
+                0 0 40px rgba(255, 255, 255, 0.4),
+                0 0 60px rgba(200, 220, 255, 0.3),
+                0 0 80px rgba(200, 220, 255, 0.2)
+              `,
+            }}
+          >
             Tyrrell
           </h1>
-          <h2 className="text-5xl md:text-7xl font-bold tracking-widest text-white drop-shadow-lg uppercase">
+          <h2
+            className="text-5xl md:text-7xl font-bold tracking-widest text-white uppercase"
+            style={{
+              textShadow: `
+                0 0 10px rgba(255, 255, 255, 0.8),
+                0 0 20px rgba(255, 255, 255, 0.5),
+                0 0 40px rgba(255, 255, 255, 0.3),
+                0 0 60px rgba(200, 220, 255, 0.2)
+              `,
+            }}
+          >
             Winter Festival
           </h2>
         </motion.div>
@@ -316,6 +340,113 @@ function Slideshow({ onClose }: { onClose: () => void }) {
         </div>
       )}
     </motion.div>
+  );
+}
+
+// --- Christmas Lights Component ---
+function ChristmasLights() {
+  const colors = [
+    { bulb: "#ff4444", glow: "rgba(255, 68, 68, 0.8)" },   // Red
+    { bulb: "#44ff44", glow: "rgba(68, 255, 68, 0.8)" },   // Green
+    { bulb: "#4488ff", glow: "rgba(68, 136, 255, 0.8)" },  // Blue
+    { bulb: "#ffaa00", glow: "rgba(255, 170, 0, 0.8)" },   // Orange/Yellow
+    { bulb: "#ff44ff", glow: "rgba(255, 68, 255, 0.8)" },  // Pink
+  ];
+
+  // Create a string of lights that drapes across
+  const lights = Array.from({ length: 20 }, (_, i) => ({
+    id: i,
+    color: colors[i % colors.length],
+    delay: i * 0.15,
+  }));
+
+  return (
+    <div className="absolute top-4 left-0 right-0 z-20 pointer-events-none overflow-hidden">
+      {/* Wire/String */}
+      <svg
+        className="w-full h-32 md:h-40"
+        viewBox="0 0 1000 120"
+        preserveAspectRatio="none"
+      >
+        {/* The drooping wire */}
+        <path
+          d="M -20 20 Q 250 80, 500 60 Q 750 40, 1020 70"
+          fill="none"
+          stroke="#333"
+          strokeWidth="2"
+        />
+
+        {/* Light bulbs along the wire */}
+        {lights.map((light, i) => {
+          // Calculate position along the curve
+          const t = i / (lights.length - 1);
+          const x = t * 1000;
+          // Approximate y position on the curve
+          const y = 20 + Math.sin(t * Math.PI) * 40 + (t > 0.5 ? (t - 0.5) * 40 : -t * 20);
+
+          return (
+            <g key={light.id}>
+              {/* Wire to bulb */}
+              <line
+                x1={x}
+                y1={y}
+                x2={x}
+                y2={y + 15}
+                stroke="#333"
+                strokeWidth="1"
+              />
+              {/* Bulb glow */}
+              <motion.circle
+                cx={x}
+                cy={y + 25}
+                r="12"
+                fill={light.color.glow}
+                animate={{
+                  opacity: [0.3, 1, 0.3],
+                  r: [10, 14, 10],
+                }}
+                transition={{
+                  duration: 1.5,
+                  delay: light.delay,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                style={{ filter: `blur(4px)` }}
+              />
+              {/* Bulb */}
+              <motion.ellipse
+                cx={x}
+                cy={y + 25}
+                rx="6"
+                ry="8"
+                fill={light.color.bulb}
+                animate={{
+                  opacity: [0.7, 1, 0.7],
+                }}
+                transition={{
+                  duration: 1.5,
+                  delay: light.delay,
+                  repeat: Infinity,
+                  ease: "easeInOut",
+                }}
+                style={{
+                  filter: `drop-shadow(0 0 6px ${light.color.glow})`,
+                }}
+              />
+              {/* Bulb cap */}
+              <rect
+                x={x - 3}
+                y={y + 12}
+                width="6"
+                height="5"
+                fill="#666"
+                rx="1"
+              />
+            </g>
+          );
+        })}
+      </svg>
+    </div>
   );
 }
 
