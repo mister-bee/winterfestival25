@@ -59,7 +59,7 @@ export default function TyrellWinterFestival() {
       </main>
 
       {/* 4. Slideshow Button */}
-      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-40">
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
         <motion.button
           onClick={() => setShowSlideshow(true)}
           className="flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white font-semibold hover:bg-white/20 transition-all shadow-lg"
@@ -78,10 +78,9 @@ export default function TyrellWinterFestival() {
         )}
       </AnimatePresence>
 
-      {/* 6. Fixed Bottom Player */}
-      <footer className="fixed bottom-0 left-0 w-full z-50 bg-black/60 backdrop-blur-xl border-t border-white/10 p-2 shadow-2xl">
+      {/* 6. Fixed Bottom Player - Commented out due to Spotify preview limitation */}
+      {/* <footer className="fixed bottom-0 left-0 w-full z-50 bg-black/60 backdrop-blur-xl border-t border-white/10 p-2 shadow-2xl">
         <div className="max-w-screen-xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          {/* Operator Visuals (Left) */}
           <div className="hidden md:flex items-center gap-4 pl-4">
             <div className="flex gap-1">
               <span className="w-1 h-4 bg-red-500 animate-[bounce_1s_infinite]"></span>
@@ -93,8 +92,6 @@ export default function TyrellWinterFestival() {
             </p>
           </div>
 
-          {/* Spotify Embed (Center/Right) */}
-          {/* This iframe updates automatically if you add songs on your phone */}
           <div className="w-full md:w-[600px] h-[80px] rounded-md overflow-hidden shadow-lg border border-white/5">
             <iframe
               src={`https://open.spotify.com/embed/playlist/${SPOTIFY_PLAYLIST_ID}?utm_source=generator&theme=0`}
@@ -107,7 +104,7 @@ export default function TyrellWinterFestival() {
             ></iframe>
           </div>
         </div>
-      </footer>
+      </footer> */}
     </div>
   );
 }
@@ -118,14 +115,44 @@ function Slideshow({ onClose }: { onClose: () => void }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [imagesLoaded, setImagesLoaded] = useState<Set<number>>(new Set());
 
-  // Fetch images from the slideshow folder
+  // Fetch images from the slideshow folder and preload them
   useEffect(() => {
     fetch("/api/slideshow")
       .then((res) => res.json())
       .then((data) => {
-        setImages(data.images || []);
-        setLoading(false);
+        const imageList = data.images || [];
+        setImages(imageList);
+
+        if (imageList.length === 0) {
+          setLoading(false);
+          return;
+        }
+
+        // Preload all images
+        let loadedCount = 0;
+        const loaded = new Set<number>();
+
+        imageList.forEach((src: string, idx: number) => {
+          const img = new Image();
+          img.onload = () => {
+            loadedCount++;
+            loaded.add(idx);
+            setImagesLoaded(new Set(loaded));
+            // Start showing once first image is loaded
+            if (loadedCount === 1) {
+              setLoading(false);
+            }
+          };
+          img.onerror = () => {
+            loadedCount++;
+            if (loadedCount === 1) {
+              setLoading(false);
+            }
+          };
+          img.src = src;
+        });
       })
       .catch(() => setLoading(false));
   }, []);
@@ -140,10 +167,10 @@ function Slideshow({ onClose }: { onClose: () => void }) {
     setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
   }, [images.length]);
 
-  // Auto-advance slides every 5 seconds
+  // Auto-advance slides every 10 seconds (doubled from 5)
   useEffect(() => {
     if (isPaused || images.length === 0) return;
-    const interval = setInterval(nextSlide, 5000);
+    const interval = setInterval(nextSlide, 10000);
     return () => clearInterval(interval);
   }, [isPaused, nextSlide, images.length]);
 
@@ -245,16 +272,23 @@ function Slideshow({ onClose }: { onClose: () => void }) {
         <ChevronRight className="w-8 h-8 text-white" />
       </button>
 
+      {/* Preload next and previous images for seamless transitions */}
+      <div className="hidden">
+        {images.map((src, idx) => (
+          <img key={idx} src={src} alt="" />
+        ))}
+      </div>
+
       {/* Image */}
       <AnimatePresence mode="wait">
         <motion.img
           key={currentIndex}
           src={images[currentIndex]}
           alt={`Slide ${currentIndex + 1}`}
-          initial={{ opacity: 0, scale: 1.1 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
-          transition={{ duration: 0.5 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 1 }}
           className="max-h-full max-w-full object-contain"
         />
       </AnimatePresence>
