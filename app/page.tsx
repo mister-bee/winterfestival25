@@ -83,7 +83,7 @@ export default function TyrellWinterFestival() {
       </main>
 
       {/* 4. Slideshow Button */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-40">
+      <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 z-40">
         <motion.button
           onClick={() => setShowSlideshow(true)}
           className="flex items-center gap-2 px-6 py-3 bg-white/10 backdrop-blur-md border border-white/20 rounded-full text-white font-semibold hover:bg-white/20 transition-all shadow-lg"
@@ -102,8 +102,8 @@ export default function TyrellWinterFestival() {
         )}
       </AnimatePresence>
 
-      {/* 6. Fixed Bottom Player - Commented out due to Spotify preview limitation */}
-      {/* <footer className="fixed bottom-0 left-0 w-full z-50 bg-black/60 backdrop-blur-xl border-t border-white/10 p-2 shadow-2xl">
+      {/* 6. Fixed Bottom Player */}
+      <footer className="fixed bottom-0 left-0 w-full z-50 bg-black/60 backdrop-blur-xl border-t border-white/10 p-2 shadow-2xl">
         <div className="max-w-screen-xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
           <div className="hidden md:flex items-center gap-4 pl-4">
             <div className="flex gap-1">
@@ -128,7 +128,7 @@ export default function TyrellWinterFestival() {
             ></iframe>
           </div>
         </div>
-      </footer> */}
+      </footer>
     </div>
   );
 }
